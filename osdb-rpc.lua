@@ -45,12 +45,12 @@ function osdb.logout()
     osdb.check(ok, res)
 end
 
-function osdb.query(hash, size)
+function osdb.query(hash, size, language)
     local searchQuery = {
         {
             moviehash = hash, 
             moviebytesize = size, 
-            sublanguageid = 'eng'
+            sublanguageid = language
         }
     }
     local limit = {limit = 10}
@@ -94,8 +94,9 @@ end
 
 hash = arg[1]
 size = arg[2]
+lang = arg[3]
 osdb.login()
-local result = osdb.query(hash, size)
+local result = osdb.query(hash, size, lang)
 local subfile = osdb.download(result)
 require('io').write(subfile)
 osdb.logout()

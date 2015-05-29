@@ -11,7 +11,8 @@ utils = require 'mp.utils'
 require 'mp.options'
 -- Read options from {mpv_config_dir}/lua-settings/osdb.conf
 local options = {
-    autoLoadSubtitles = false
+    autoLoadSubtitles = false,
+    language = 'eng'
 }
 read_options(options, 'osdb')
 
@@ -72,7 +73,7 @@ function find_subtitles()
     assert(srcfile ~= nil)
     local mhash, fsize = movieHash(srcfile)
     msg.info('Loading OpenSubtitles subtitle...')
-    result = utils.subprocess({args = {'lua', OSDB_RPC_PATH, mhash, fsize}})
+    result = utils.subprocess({args = {'lua', OSDB_RPC_PATH, mhash, fsize, options.language}})
     if result.status == 0 then
         mp.commandv('sub_add', result.stdout)
     else
