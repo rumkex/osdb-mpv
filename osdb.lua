@@ -1,9 +1,30 @@
+if mp == nil then
+    print('Must be run inside MPV')
+end
+
 require 'os'
 require 'io'
 
 msg = require 'mp.msg'
 utils = require 'mp.utils'
 
+require 'mp.options'
+-- Read options from {mpv_config_dir}/lua-settings/osdb.conf
+local options = {
+    autoLoadSubtitles = false
+}
+read_options(options, 'osdb')
+
+-- Find osdb-rpc.lua
+for path in string.gmatch(package.path, "[^;]+") do
+-- Last path should be {mpv_config_dir}/scripts/
+    scriptsPath = utils.split_path(path)
+end
+OSDB_RPC_PATH = scriptsPath..'osdb-rpc.lua'
+msg.debug('osdb-rpc.lua location: '..OSDB_RPC_PATH)
+
+-- Movie hash function for OSDB, courtesy of 
+-- http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
 function movieHash(fileName)
         local fil = io.open(fileName, "rb")
         local lo,hi=0,0
@@ -46,18 +67,23 @@ function movieHash(fileName)
         return string.format("%08x%08x", hi,lo), size
 end
 
-function on_playback_started(event)
+function find_subtitles()
     local srcfile = mp.get_property('path')
     assert(srcfile ~= nil)
     local mhash, fsize = movieHash(srcfile)
-    result = utils.subprocess({args = {'lua', 'osdb-rpc.lua', mhash, fsize}})
-    subfile = result.stdout
-    if subfile ~= nil then
-        msg.info('Loading OpenSubtitles subtitle')
-        mp.commandv('sub_add', subfile)
+    msg.info('Loading OpenSubtitles subtitle...')
+    result = utils.subprocess({args = {'lua', OSDB_RPC_PATH, mhash, fsize}})
+    if result.status == 0 then
+        mp.commandv('sub_add', result.stdout)
     else
-        msg.error('No auto subtitle found')
+        msg.error('Failure.')
     end
 end
 
-mp.register_event("file-loaded", on_playback_started)
+mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', find_subtitles)
+mp.register_event('file-loaded', function (event) 
+                                     if options.autoLoadSubtitles then 
+                                        find_subtitles()
+                                     end
+                                 end)
+
