@@ -3,7 +3,11 @@ if mp ~= nil then
     return
 end
 
-rpc = require 'xmlrpc.http'
+local rpc = require 'xmlrpc.http'
+local io = require 'io'
+local http = require 'socket.http'
+local zlib = require 'zlib'
+local ltn12 = require 'ltn12'
 
 OSDB_API = 'http://api.opensubtitles.org/xml-rpc'
 USERAGENT = 'OSTestUserAgent'
@@ -64,13 +68,25 @@ function osdb.download(subdata)
         error("invalid data")
         return
     end
-    success = os.execute(string.format(DL_COMMAND, 
-                                       subdata['SubDownloadLink'], 
-                                       subdata['SubFileName']))
-    if not success then
-        return
+
+    inflate = zlib.inflate()
+    decompress = function(chunk)
+        if chunk ~= '' and chunk ~= nil then
+            return inflate(chunk)
+        else
+            return chunk
+        end
     end
-    return string.format(TMP, subdata['SubFileName'])
+
+    subfile = string.format(TMP, subdata['SubFileName'])
+    http.request {
+        url = subdata['SubDownloadLink'],
+        sink = ltn12.sink.chain(
+            decompress,
+            ltn12.sink.file(io.open(subfile, 'wb'))
+        )
+    }
+    return subfile
 end
 
 
