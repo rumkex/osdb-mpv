@@ -25,3 +25,12 @@ You can either add it to MPV configuration file:
     script-opts=osdb-autoLoadSubtitles=yes
 Or create a separate lua-settings/osdb.conf file with following contents:
     autoLoadSubtitles=yes
+    
+# Usage
+
+If *autoLoadSubtitles* is enabled, subtitles will be found automatically when a file is loaded.
+
+Otherwise, press **Ctrl+F** to search for subtitles.
+
+To cycle through different subtitles found on OSDb, press **Ctrl+F** again.
+
