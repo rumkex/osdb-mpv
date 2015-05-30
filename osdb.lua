@@ -2,11 +2,14 @@ if mp == nil then
     print('Must be run inside MPV')
 end
 
-require 'os'
-require 'io'
+local os = require 'os'
+local io = require 'io'
+local http = require 'socket.http'
+local zlib = require 'zlib'
+local ltn12 = require 'ltn12'
 
-msg = require 'mp.msg'
-utils = require 'mp.utils'
+local msg = require 'mp.msg'
+local utils = require 'mp.utils'
 
 require 'mp.options'
 -- Read options from {mpv_config_dir}/lua-settings/osdb.conf
@@ -23,6 +26,8 @@ for path in string.gmatch(package.path, "[^;]+") do
 end
 OSDB_RPC_PATH = scriptsPath..'osdb-rpc.lua'
 msg.debug('osdb-rpc.lua location: '..OSDB_RPC_PATH)
+
+TMP = '/tmp/%s'
 
 -- Movie hash function for OSDB, courtesy of 
 -- http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
@@ -68,17 +73,62 @@ function movieHash(fileName)
         return string.format("%08x%08x", hi,lo), size
 end
 
-function find_subtitles()
-    local srcfile = mp.get_property('path')
-    assert(srcfile ~= nil)
-    local mhash, fsize = movieHash(srcfile)
-    msg.info('Loading OpenSubtitles subtitle...')
-    result = utils.subprocess({args = {'lua', OSDB_RPC_PATH, mhash, fsize, options.language}})
+-- Subtitle list cache
+local subtitles = {}
+
+function download_file(link, filename)
+    assert(link and filename)
+
+    local inflate = zlib.inflate()
+    local decompress = function(chunk)
+        if chunk ~= '' and chunk ~= nil then
+            return inflate(chunk)
+        else
+            return chunk
+        end
+    end
+
+    local subfile = string.format(TMP, filename)
+    http.request {
+        url = link,
+        sink = ltn12.sink.chain(
+            decompress,
+            ltn12.sink.file(io.open(subfile, 'wb'))
+        )
+    }
+    return subfile
+end
+
+function update_list(hash, size)
+    subtitles = {}
+    local result = utils.subprocess({args = {'lua', OSDB_RPC_PATH, hash, size, options.language}})
     if result.status == 0 then
-        mp.commandv('sub_add', result.stdout)
+        for id, link, name in string.gmatch(result.stdout, "([^%s]+)%s+([^%s]+)%s+([^%s]+)\n") do
+            subtitles[#subtitles + 1] = {id=id, link=link, name=name}
+        end
     else
         msg.error('Failure.')
     end
+end
+
+function find_subtitles()
+    if #subtitles == 0 then
+        -- Refresh the subtitle list
+        local srcfile = mp.get_property('path')
+        assert(srcfile ~= nil)
+        local mhash, fsize = movieHash(srcfile)
+        msg.info('Querying OpenSubtitles database...')
+        update_list(mhash, fsize)
+    else
+        -- Move onto another subtitle
+        mp.commandv('sub_remove', subtitles[1].sid)
+        table.remove(subtitles, 1)
+    end
+    -- Load first subtitle
+    local filename = download_file(subtitles[1].link, subtitles[1].name)
+    mp.commandv('sub_add', filename)
+    -- Remember which track it is
+    subtitles[1].sid = mp.get_property('sid')
 end
 
 mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', find_subtitles)

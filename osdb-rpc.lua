@@ -4,10 +4,6 @@ if mp ~= nil then
 end
 
 local rpc = require 'xmlrpc.http'
-local io = require 'io'
-local http = require 'socket.http'
-local zlib = require 'zlib'
-local ltn12 = require 'ltn12'
 
 OSDB_API = 'http://api.opensubtitles.org/xml-rpc'
 USERAGENT = 'OSTestUserAgent'
@@ -15,8 +11,7 @@ USERAGENT = 'OSTestUserAgent'
 LOGIN = ''
 PASSWORD = ''
 
-TMP = '/tmp/%s'
-DL_COMMAND = 'wget -O- -q %s | gunzip > '..TMP
+MAX_SUBTITLES = 50
 
 -- This file just performs RPC call to OpenSubtitles
 
@@ -53,42 +48,15 @@ function osdb.query(hash, size, language)
             sublanguageid = language
         }
     }
-    local limit = {limit = 10}
+    local limit = {limit = MAX_SUBTITLES}
 
     local ok, res = rpc.call(OSDB_API, 'SearchSubtitles', osdb.token, searchQuery, limit)
     osdb.check(ok, res)
     if res['data'] == false then
         error('Subtitle not found in OSDb')
     end
-    return res['data'][1]
+    return res['data']
 end
-
-function osdb.download(subdata)
-    if subdata == nil then
-        error("invalid data")
-        return
-    end
-
-    inflate = zlib.inflate()
-    decompress = function(chunk)
-        if chunk ~= '' and chunk ~= nil then
-            return inflate(chunk)
-        else
-            return chunk
-        end
-    end
-
-    subfile = string.format(TMP, subdata['SubFileName'])
-    http.request {
-        url = subdata['SubDownloadLink'],
-        sink = ltn12.sink.chain(
-            decompress,
-            ltn12.sink.file(io.open(subfile, 'wb'))
-        )
-    }
-    return subfile
-end
-
 
 -- Main
 
@@ -97,6 +65,8 @@ size = arg[2]
 lang = arg[3]
 osdb.login()
 local result = osdb.query(hash, size, lang)
-local subfile = osdb.download(result)
-require('io').write(subfile)
 osdb.logout()
+
+for i, data in pairs(result) do
+    print(data['IDSubMovieFile'], data['SubDownloadLink'], data['SubFileName'])
+end
