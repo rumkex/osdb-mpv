@@ -1,46 +1,42 @@
-if mp ~= nil then
--- lua-xmlrpc is broken inside MPV for some reason
-    return
-end
-
 local rpc = require 'xmlrpc.http'
 
-OSDB_API = 'http://api.opensubtitles.org/xml-rpc'
-USERAGENT = 'OSTestUserAgent'
+-- This module just performs RPC call to OpenSubtitles
 
-LOGIN = ''
-PASSWORD = ''
+local osdb = {}
 
-MAX_SUBTITLES = 50
+osdb.API = 'http://api.opensubtitles.org/xml-rpc'
+osdb.USERAGENT = 'OSTestUserAgent'
 
--- This file just performs RPC call to OpenSubtitles
+osdb.LOGIN = ''
+osdb.PASSWORD = ''
 
-osdb = {}
+osdb.MAX_SUBTITLES = 50
+
 function osdb.check(ok, res)
     if not ok then
         error('Request failed.')
     end
-    if not res['status'] == '200 OK' then
-        error('Request failed. ', res['status'])
+    if not res.status == '200 OK' then
+        error('Request failed. ', res.status)
     end
 end
 
 function osdb.login()
-    local arguments = {}
-    local ok, res = rpc.call(OSDB_API, 'LogIn', LOGIN, PASSWORD, 'en', USERAGENT)
+    local ok, res = rpc.call(osdb.API, 'LogIn', osdb.LOGIN, 
+                             osdb.PASSWORD, 'en', osdb.USERAGENT)
     osdb.check(ok, res)
-    osdb.token = res['token']
+    osdb.token = res.token
 end
 
 function osdb.logout()
-    local arguments =  {
-        ["token"] = token
-    }
-    local ok, res = rpc.call(OSDB_API, 'LogOut', osdb.token)
+    assert(osdb.token)
+    local ok, res = rpc.call(osdb.API, 'LogOut', osdb.token)
     osdb.check(ok, res)
 end
 
 function osdb.query(hash, size, language)
+    assert(osdb.token)
+    assert(hash and size and language)
     local searchQuery = {
         {
             moviehash = hash, 
@@ -48,25 +44,24 @@ function osdb.query(hash, size, language)
             sublanguageid = language
         }
     }
-    local limit = {limit = MAX_SUBTITLES}
+    local limit = {limit = osdb.MAX_SUBTITLES}
 
-    local ok, res = rpc.call(OSDB_API, 'SearchSubtitles', osdb.token, searchQuery, limit)
+    local ok, res = rpc.call(osdb.API, 'SearchSubtitles', 
+                             osdb.token, searchQuery, limit)
     osdb.check(ok, res)
-    if res['data'] == false then
-        error('Subtitle not found in OSDb')
+    if res.data == false then
+        error('No subtitles found in OSDb')
     end
-    return res['data']
+    return res.data
 end
 
--- Main
-
-hash = arg[1]
-size = arg[2]
-lang = arg[3]
-osdb.login()
-local result = osdb.query(hash, size, lang)
-osdb.logout()
-
-for i, data in pairs(result) do
-    print(data['IDSubMovieFile'], data['SubDownloadLink'], data['SubFileName'])
+function osdb.report(subdata)
+    assert(osdb.token)
+    assert(subdata)
+    local ok, res = rpc.call(osdb.API, 'ReportWrongMovieHash', 
+                             osdb.token, subdata.IDSubMovieFile)
+    osdb.check(ok, res)
 end
+
+return osdb
+

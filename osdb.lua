@@ -2,6 +2,8 @@ if mp == nil then
     print('Must be run inside MPV')
 end
 
+local rpc = require 'osdb-rpc'
+
 local os = require 'os'
 local io = require 'io'
 local http = require 'socket.http'
@@ -15,17 +17,10 @@ require 'mp.options'
 -- Read options from {mpv_config_dir}/lua-settings/osdb.conf
 local options = {
     autoLoadSubtitles = false,
-    language = 'eng'
+    language = 'eng',
+    autoFlagSubtitles = false
 }
 read_options(options, 'osdb')
-
--- Find osdb-rpc.lua
-for path in string.gmatch(package.path, "[^;]+") do
--- Last path should be {mpv_config_dir}/scripts/
-    scriptsPath = utils.split_path(path)
-end
-OSDB_RPC_PATH = scriptsPath..'osdb-rpc.lua'
-msg.debug('osdb-rpc.lua location: '..OSDB_RPC_PATH)
 
 TMP = '/tmp/%s'
 
@@ -99,18 +94,6 @@ function download_file(link, filename)
     return subfile
 end
 
-function update_list(hash, size)
-    subtitles = {}
-    local result = utils.subprocess({args = {'lua', OSDB_RPC_PATH, hash, size, options.language}})
-    if result.status == 0 then
-        for id, link, name in string.gmatch(result.stdout, "([^%s]+)%s+([^%s]+)%s+([^%s]+)\n") do
-            subtitles[#subtitles + 1] = {id=id, link=link, name=name}
-        end
-    else
-        msg.error('Failure.')
-    end
-end
-
 function find_subtitles()
     if #subtitles == 0 then
         -- Refresh the subtitle list
@@ -118,19 +101,29 @@ function find_subtitles()
         assert(srcfile ~= nil)
         local mhash, fsize = movieHash(srcfile)
         msg.info('Querying OpenSubtitles database...')
-        update_list(mhash, fsize)
+        rpc.login()
+        subtitles = rpc.query(mhash, fsize, options.language)
+        rpc.logout()
     else
-        -- Move onto another subtitle
-        mp.commandv('sub_remove', subtitles[1].sid)
+        -- Move to another subtitle
+        mp.commandv('sub_remove', subtitles[1]._sid)
         table.remove(subtitles, 1)
     end
     -- Load first subtitle
-    local filename = download_file(subtitles[1].link, subtitles[1].name)
+    local filename = download_file(subtitles[1].SubDownloadLink, 
+                                   subtitles[1].SubFileName)
     mp.commandv('sub_add', filename)
     -- Remember which track it is
-    subtitles[1].sid = mp.get_property('sid')
+    subtitles[1]._sid = mp.get_property('sid')
 end
 
+function flag_subtitle()
+    rpc.login()
+    rpc.report(subtitles[1])
+    rpc.logout()
+end
+
+mp.add_key_binding('Ctrl+r', 'osdb_report', flag_subtitle)
 mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', find_subtitles)
 mp.register_event('file-loaded', function (event) 
                                      if options.autoLoadSubtitles then 
