@@ -17,9 +17,13 @@ Just drop *osdb.lua* and *osdb-rpc.lua* into **~/.mpv/scripts** (or **~/.config/
 
 # Configuration
 
-At the moment, this plugin has just a single option:
+At the moment, this plugin has the following options:
     autoLoadSubtitles=[yes|no]
-It automatically loads subtitles when a file is loaded. Default is 'no'.
+Automatically load subtitles when a file is loaded. Default is 'no'.
+    language='eng'
+Subtitle languages to search for. Default is 'eng'. Can be multiple values, comma-separated.
+    autoFlagSubtitles=[yes|no]
+Flag subtitles automatically when switching to the next subtitle suggestion. Default is 'no'.
 
 You can either add it to MPV configuration file:
     script-opts=osdb-autoLoadSubtitles=yes
@@ -33,4 +37,6 @@ If *autoLoadSubtitles* is enabled, subtitles will be found automatically when a 
 Otherwise, press **Ctrl+F** to search for subtitles.
 
 To cycle through different subtitles found on OSDb, press **Ctrl+F** again.
+
+To flag a subtitle, if it has invalid timings and/or designed for another release of the same movie, press **Ctrl+R**.
 

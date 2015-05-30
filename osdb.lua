@@ -107,6 +107,9 @@ function find_subtitles()
     else
         -- Move to another subtitle
         mp.commandv('sub_remove', subtitles[1]._sid)
+        if options.autoFlagSubtitles then
+            flag_subtitle()
+        end
         table.remove(subtitles, 1)
     end
     -- Load first subtitle
