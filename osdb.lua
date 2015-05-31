@@ -122,6 +122,7 @@ end
 
 function flag_subtitle()
     rpc.login()
+    mp.osd_message("Subtitle suggestion reported as incorrect")
     rpc.report(subtitles[1])
     rpc.logout()
 end

@@ -4,13 +4,13 @@ OpenSubtitles automatic downloader script for [MPV](http://mpv.io/). Relies on L
 
 # Prerequisites
 
-Obviously, you need to install MPV first
+Obviously, you need to install MPV first.
 
-On latest Debian/Ubuntu, you also need the following packages:
+*lua-xmlrpc* and its dependencies are available on LuaRocks:
 
-    sudo apt-get install luasocket lua-zlib
+    luarocks install luaxmlrpc lua-zlib
 
-To get *lua-xmlrpc* for Lua 5.2, you should check the [source repository](https://github.com/timn/lua-xmlrpc).
+MPV is using Lua 5.2 by default, so it's recommended to use LuaRocks for the same version of Lua.
 
 # Installation
 
