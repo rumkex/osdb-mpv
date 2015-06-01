@@ -95,6 +95,7 @@ function download_file(link, filename)
 end
 
 function find_subtitles()
+    mp.resume()
     if #subtitles == 0 then
         -- Refresh the subtitle list
         local srcfile = mp.get_property('path')
@@ -115,12 +116,15 @@ function find_subtitles()
     -- Load first subtitle
     local filename = download_file(subtitles[1].SubDownloadLink, 
                                    subtitles[1].SubFileName)
+    mp.suspend()
     mp.commandv('sub_add', filename)
+    mp.resume()
     -- Remember which track it is
     subtitles[1]._sid = mp.get_property('sid')
 end
 
 function flag_subtitle()
+    mp.resume()
     rpc.login()
     mp.osd_message("Subtitle suggestion reported as incorrect")
     rpc.report(subtitles[1])
