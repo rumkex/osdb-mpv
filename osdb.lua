@@ -125,10 +125,12 @@ end
 
 function flag_subtitle()
     mp.resume()
-    rpc.login()
-    mp.osd_message("Subtitle suggestion reported as incorrect")
-    rpc.report(subtitles[1])
-    rpc.logout()
+    if #subtitles > 0 then
+        rpc.login()
+        mp.osd_message("Subtitle suggestion reported as incorrect")
+        rpc.report(subtitles[1])
+        rpc.logout()
+    end
 end
 
 mp.add_key_binding('Ctrl+r', 'osdb_report', flag_subtitle)
