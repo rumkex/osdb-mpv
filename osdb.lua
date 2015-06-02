@@ -22,7 +22,7 @@ local options = {
 }
 read_options(options, 'osdb')
 
-TMP = '/tmp/%s'
+local TMP = '/tmp/%s'
 
 -- Movie hash function for OSDB, courtesy of 
 -- http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
@@ -101,7 +101,7 @@ function find_subtitles()
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
         local mhash, fsize = movieHash(srcfile)
-        msg.info('Querying OpenSubtitles database...')
+        mp.osd_message("Searching for subtitles...")
         rpc.login()
         subtitles = rpc.query(mhash, fsize, options.language)
         rpc.logout()
@@ -113,11 +113,16 @@ function find_subtitles()
         end
         table.remove(subtitles, 1)
     end
+    if #subtitles == 0 then
+        mp.osd_message("No subtitles found")
+        return
+    end
     -- Load first subtitle
     local filename = download_file(subtitles[1].SubDownloadLink, 
                                    subtitles[1].SubFileName)
     mp.suspend()
     mp.commandv('sub_add', filename)
+    mp.osd_message("Subtitle found, "..#subtitles.." left in cache")
     mp.resume()
     -- Remember which track it is
     subtitles[1]._sid = mp.get_property('sid')
