@@ -10,8 +10,6 @@ osdb.USERAGENT = 'OSTestUserAgent'
 osdb.LOGIN = ''
 osdb.PASSWORD = ''
 
-osdb.MAX_SUBTITLES = 50
-
 function osdb.check(ok, res)
     if not ok then
         error('Request failed.')
@@ -34,7 +32,7 @@ function osdb.logout()
     osdb.check(ok, res)
 end
 
-function osdb.query(hash, size, language)
+function osdb.query(nsubtitles, hash, size, language)
     assert(osdb.token)
     assert(hash and size and language)
     local searchQuery = {
@@ -44,7 +42,7 @@ function osdb.query(hash, size, language)
             sublanguageid = language
         }
     }
-    local limit = {limit = osdb.MAX_SUBTITLES}
+    local limit = {limit = nsubtitles}
 
     local ok, res = rpc.call(osdb.API, 'SearchSubtitles', 
                              osdb.token, searchQuery, limit)

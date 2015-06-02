@@ -17,6 +17,7 @@ require 'mp.options'
 -- Read options from {mpv_config_dir}/lua-settings/osdb.conf
 local options = {
     autoLoadSubtitles = false,
+    numSubtitles = 10,
     language = 'eng',
     autoFlagSubtitles = false
 }
@@ -103,7 +104,9 @@ function find_subtitles()
         local mhash, fsize = movieHash(srcfile)
         mp.osd_message("Searching for subtitles...")
         rpc.login()
-        subtitles = rpc.query(mhash, fsize, options.language)
+        subtitles = rpc.query(options.numSubtitles,
+                              mhash, fsize,
+                              options.language)
         rpc.logout()
     else
         -- Move to another subtitle
