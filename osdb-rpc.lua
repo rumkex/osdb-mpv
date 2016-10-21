@@ -5,7 +5,7 @@ local rpc = require 'xmlrpc.http'
 local osdb = {}
 
 osdb.API = 'http://api.opensubtitles.org/xml-rpc'
-osdb.USERAGENT = 'OSTestUserAgent'
+osdb.USERAGENT = 'OSTestUserAgentTemp'
 
 osdb.LOGIN = ''
 osdb.PASSWORD = ''
