@@ -19,9 +19,9 @@ function osdb.check(ok, res)
     end
 end
 
-function osdb.login()
-    local ok, res = rpc.call(osdb.API, 'LogIn', osdb.LOGIN, 
-                             osdb.PASSWORD, 'en', osdb.USERAGENT)
+function osdb.login(user, password)
+    local ok, res = rpc.call(osdb.API, 'LogIn', user,
+                             password, 'en', osdb.USERAGENT)
     osdb.check(ok, res)
     osdb.token = res.token
 end

@@ -19,7 +19,9 @@ local options = {
     autoLoadSubtitles = false,
     numSubtitles = 10,
     language = 'eng',
-    autoFlagSubtitles = false
+    autoFlagSubtitles = false,
+    user = '',
+    password = ''
 }
 read_options(options, 'osdb')
 
@@ -103,7 +105,7 @@ function find_subtitles()
         assert(srcfile ~= nil)
         local mhash, fsize = movieHash(srcfile)
         mp.osd_message("Searching for subtitles...")
-        rpc.login()
+        rpc.login(options.user, options.password)
         subtitles = rpc.query(options.numSubtitles,
                               mhash, fsize,
                               options.language)
