@@ -20,6 +20,11 @@ Just drop *osdb.lua* and *osdb-rpc.lua* into **~/.mpv/scripts** (or **~/.config/
 
 At the moment, this plugin has the following options:
 
+    user=foo
+    password=bar
+
+Optional credentials to use with OpenSubtitles API - your login and password that you use on opensubtitles.org.
+
     autoLoadSubtitles=[yes|no]
     
 Automatically load subtitles when a file is loaded. Default is 'no'.
@@ -44,6 +49,8 @@ Or create a separate lua-settings/osdb.conf file with following contents:
 
     autoLoadSubtitles=yes
     numSubtitles=100
+    user=foo
+    password=bar
     
 # Usage
 
