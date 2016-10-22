@@ -12,6 +12,12 @@ Obviously, you need to install MPV first.
 
 MPV is using Lua 5.2 by default, so it's recommended to use LuaRocks for the same version of Lua.
 
+Alternatively, one can use distribution Lua packages (confirmed working on Ubuntu 16.04 and derivatives):
+
+    sudo apt-get install lua-socket lua-xmlrpc lua-zlib
+    # Currently, symlink is required to be able to use xmlrpc in Lua 5.2
+    sudo ln -s /usr/share/lua/5.1/xmlrpc /usr/share/lua/5.2/xmlrpc
+
 # Installation
 
 Just drop *osdb.lua* and *osdb-rpc.lua* into **~/.mpv/scripts** (or **~/.config/mpv/scripts**).
