@@ -142,6 +142,8 @@ end
 mp.add_key_binding('Ctrl+r', 'osdb_report', flag_subtitle)
 mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', find_subtitles)
 mp.register_event('file-loaded', function (event) 
+                                     -- Reset the cache
+                                     subtitles = {}
                                      if options.autoLoadSubtitles then 
                                         find_subtitles()
                                      end
