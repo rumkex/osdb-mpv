@@ -139,13 +139,25 @@ function flag_subtitle()
     end
 end
 
-mp.add_key_binding('Ctrl+r', 'osdb_report', flag_subtitle)
-mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', find_subtitles)
+function catch(callback, ...)
+    xpcall(
+        callback,
+        function(err)
+            msg.warn(debug.traceback())
+            msg.fatal(err)
+            mp.osd_message("Error: " .. err)
+        end,
+        ...
+    )
+end
+
+mp.add_key_binding('Ctrl+r', 'osdb_report', function() catch(flag_subtitle) end)
+mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', function() catch(find_subtitles) end)
 mp.register_event('file-loaded', function (event) 
                                      -- Reset the cache
                                      subtitles = {}
                                      if options.autoLoadSubtitles then 
-                                        find_subtitles()
+                                        catch(find_subtitles)
                                      end
                                  end)
 
