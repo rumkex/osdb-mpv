@@ -102,6 +102,9 @@ function find_subtitles()
         -- Refresh the subtitle list
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
+        if string.find(srcfile, 'https?://') then
+            return
+        end
         local mhash, fsize = movieHash(srcfile)
         mp.osd_message("Searching for subtitles...")
         rpc.login(options.user, options.password)
