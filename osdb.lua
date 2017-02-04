@@ -31,6 +31,9 @@ local TMP = '/tmp/%s'
 -- http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
 function movieHash(fileName)
         local fil = io.open(fileName, "rb")
+        if fil == nil then
+            error("Can't open file")
+        end
         local lo,hi=0,0
         for i=1,8192 do
                 local a,b,c,d = fil:read(4):byte(1,4)
@@ -102,7 +105,11 @@ function find_subtitles()
         -- Refresh the subtitle list
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
-        local mhash, fsize = movieHash(srcfile)
+        local ok, mhash, fsize = pcall(movieHash, srcfile)
+        if not ok then
+            msg.warn("Movie hash couldn't be computed")
+            return
+        end
         mp.osd_message("Searching for subtitles...")
         rpc.login(options.user, options.password)
         subtitles = rpc.query(options.numSubtitles,
