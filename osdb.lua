@@ -76,6 +76,7 @@ end
 
 -- Subtitle list cache
 local subtitles = {}
+local current_subtitle = 0
 
 function download_file(link, filename)
     assert(link and filename)
@@ -115,33 +116,37 @@ function find_subtitles()
         subtitles = rpc.query(options.numSubtitles,
                               mhash, fsize,
                               options.language)
+        current_subtitle = 1
         rpc.logout()
     else
         -- Move to another subtitle
-        mp.commandv('sub_remove', subtitles[1]._sid)
+        mp.commandv('sub_remove', subtitles[current_subtitle]._sid)
         if options.autoFlagSubtitles then
             flag_subtitle()
         end
-        table.remove(subtitles, 1)
+        current_subtitle = current_subtitle + 1
+        if current_subtitle > #subtitles then
+            current_subtitle = 1
+        end
     end
     if #subtitles == 0 then
         mp.osd_message("No subtitles found")
         return
     end
     -- Load first subtitle
-    local filename = download_file(subtitles[1].SubDownloadLink, 
-                                   subtitles[1].SubFileName)
+    local filename = download_file(subtitles[current_subtitle].SubDownloadLink,
+                                   subtitles[current_subtitle].SubFileName)
     mp.commandv('sub_add', filename)
-    mp.osd_message("Subtitle found, "..#subtitles.." left in cache")
+    mp.osd_message("Using subtitles "..current_subtitle.."/"..#subtitles)
     -- Remember which track it is
-    subtitles[1]._sid = mp.get_property('sid')
+    subtitles[current_subtitle]._sid = mp.get_property('sid')
 end
 
 function flag_subtitle()
     if #subtitles > 0 then
         rpc.login()
         mp.osd_message("Subtitle suggestion reported as incorrect")
-        rpc.report(subtitles[1])
+        rpc.report(subtitles[current_subtitle])
         rpc.logout()
     end
 end
