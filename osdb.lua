@@ -119,10 +119,12 @@ function find_subtitles()
         current_subtitle = 1
         rpc.logout()
     else
-        -- Move to another subtitle
-        mp.commandv('sub_remove', subtitles[current_subtitle]._sid)
-        if options.autoFlagSubtitles then
-            flag_subtitle()
+        -- Move to the next subtitle
+        if subtitles[current_subtitle]._sid ~= nil then
+            mp.commandv('sub_remove', subtitles[current_subtitle]._sid)
+            if options.autoFlagSubtitles then
+                flag_subtitle()
+            end
         end
         current_subtitle = current_subtitle + 1
         if current_subtitle > #subtitles then
