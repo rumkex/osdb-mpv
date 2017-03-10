@@ -7,9 +7,6 @@ local osdb = {}
 osdb.API = 'http://api.opensubtitles.org/xml-rpc'
 osdb.USERAGENT = 'osdb-mpv v1'
 
-osdb.LOGIN = ''
-osdb.PASSWORD = ''
-
 function osdb.check(ok, res)
     if not ok then
         error('Request failed.')
