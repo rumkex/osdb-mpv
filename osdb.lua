@@ -147,7 +147,7 @@ end
 
 function flag_subtitle()
     if #subtitles > 0 then
-        rpc.login()
+        rpc.login(options.user, options.password)
         mp.osd_message("Subtitle suggestion reported as incorrect")
         rpc.report(subtitles[current_subtitle])
         rpc.logout()
