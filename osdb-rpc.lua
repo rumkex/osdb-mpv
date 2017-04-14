@@ -29,25 +29,39 @@ function osdb.logout()
     osdb.check(ok, res)
 end
 
-function osdb.query(nsubtitles, hash, size, language)
+function osdb.query(nsubtitles, search_query)
     assert(osdb.token)
-    assert(hash and size and language)
-    local searchQuery = {
-        {
-            moviehash = hash, 
-            moviebytesize = size, 
-            sublanguageid = language
-        }
-    }
+    assert(search_query)
     local limit = {limit = nsubtitles}
 
     local ok, res = rpc.call(osdb.API, 'SearchSubtitles', 
-                             osdb.token, searchQuery, limit)
+                             osdb.token, search_query, limit)
     osdb.check(ok, res)
     if res.data == false then
         error('No subtitles found in OSDb')
     end
     return res.data
+end
+
+function osdb.query_hash(nsubtitles, language, hash, size)
+    assert(language and hash and size)
+    return osdb.query(nsubtitles, {
+        {
+            moviehash = hash,
+            moviebytesize = size,
+            sublanguageid = language
+        }
+    })
+end
+
+function osdb.query_text(nsubtitles, language, query)
+    assert(language and query)
+    return osdb.query(nsubtitles, {
+        {
+            query = query,
+            sublanguageid = language
+        }
+    })
 end
 
 function osdb.report(subdata)
