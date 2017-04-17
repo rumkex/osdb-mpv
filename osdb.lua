@@ -20,6 +20,7 @@ local options = {
     numSubtitles = 10,
     language = 'eng',
     autoFlagSubtitles = false,
+    fileNameSearchFallback = true,
     user = '',
     password = ''
 }
@@ -77,6 +78,7 @@ end
 -- Subtitle list cache
 local subtitles = {}
 local current_subtitle = 0
+local search_by_filename = false
 
 function download_file(link, filename)
     assert(link and filename)
@@ -101,21 +103,37 @@ function download_file(link, filename)
     return subfile
 end
 
+function toggle_search_mode()
+    search_by_filename = not search_by_filename
+    subtitles = {}
+    find_subtitles()
+end
+
 function find_subtitles()
     if #subtitles == 0 then
         -- Refresh the subtitle list
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
-        local ok, mhash, fsize = pcall(movieHash, srcfile)
-        if not ok then
-            msg.warn("Movie hash couldn't be computed")
-            return
-        end
-        mp.osd_message("Searching for subtitles...")
+        mp.osd_message(string.format(
+            "Searching for subtitles%s...",
+            search_by_filename and ' (by filename)' or ''
+        ))
         rpc.login(options.user, options.password)
-        subtitles = rpc.query(options.numSubtitles,
-                              mhash, fsize,
-                              options.language)
+        if search_by_filename then
+            local _, basename = utils.split_path(srcfile)
+            subtitles = rpc.query_text(options.numSubtitles,
+                                       options.language,
+                                       basename)
+        else
+            local ok, mhash, fsize = pcall(movieHash, srcfile)
+            if not ok then
+                msg.warn("Movie hash couldn't be computed")
+                return
+            end
+            subtitles = rpc.query_hash(options.numSubtitles,
+                                       options.language,
+                                       mhash, fsize)
+        end
         current_subtitle = 1
         rpc.logout()
     else
@@ -132,7 +150,11 @@ function find_subtitles()
         end
     end
     if #subtitles == 0 then
-        mp.osd_message("No subtitles found")
+        if options.fileNameSearchFallback and not search_by_filename then
+            toggle_search_mode()
+        else
+            mp.osd_message("No subtitles found")
+        end
         return
     end
     -- Load current subtitle
@@ -146,7 +168,7 @@ function find_subtitles()
 end
 
 function flag_subtitle()
-    if #subtitles > 0 then
+    if #subtitles > 0 and not search_by_filename then
         rpc.login(options.user, options.password)
         mp.osd_message("Subtitle suggestion reported as incorrect")
         rpc.report(subtitles[current_subtitle])
@@ -168,6 +190,7 @@ end
 
 mp.add_key_binding('Ctrl+r', 'osdb_report', function() catch(flag_subtitle) end)
 mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', function() catch(find_subtitles) end)
+mp.add_key_binding('Ctrl+Shift+f', 'osdb_toggle_search_mode', function() catch(toggle_search_mode) end)
 mp.register_event('file-loaded', function (event) 
                                      -- Reset the cache
                                      subtitles = {}
