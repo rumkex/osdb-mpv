@@ -32,7 +32,7 @@ At the moment, this plugin has the following options:
 Optional credentials to use with OpenSubtitles API - your login and password that you use on opensubtitles.org.
 
     autoLoadSubtitles=[yes|no]
-    
+
 Automatically load subtitles when a file is loaded. Default is 'no'.
 
     numSubtitles=10
@@ -44,20 +44,20 @@ Number of matching subtitles to query from OpenSubtitles. Default is 10. Maximum
 Subtitle languages to search for. Default is 'eng'. Can be multiple values, comma-separated.
 
     autoFlagSubtitles=[yes|no]
-    
+
 Flag subtitles automatically when switching to the next subtitle suggestion. Default is 'no'.
 
 You can either add those to MPV configuration file, for example:
 
     script-opts=osdb-autoLoadSubtitles=yes,osdb-numSubtitles=100
-    
+
 Or create a separate lua-settings/osdb.conf file with following contents:
 
     autoLoadSubtitles=yes
     numSubtitles=100
     user=foo
     password=bar
-    
+
 # Usage
 
 If *autoLoadSubtitles* is enabled, subtitles will be found automatically when a file is loaded.
