@@ -27,7 +27,7 @@ read_options(options, 'osdb')
 
 local TMP = '/tmp/%s'
 
--- Movie hash function for OSDB, courtesy of 
+-- Movie hash function for OSDB, courtesy of
 -- http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
 function movieHash(fileName)
         local fil = io.open(fileName, "rb")
@@ -168,10 +168,10 @@ end
 
 mp.add_key_binding('Ctrl+r', 'osdb_report', function() catch(flag_subtitle) end)
 mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', function() catch(find_subtitles) end)
-mp.register_event('file-loaded', function (event) 
+mp.register_event('file-loaded', function (event)
                                      -- Reset the cache
                                      subtitles = {}
-                                     if options.autoLoadSubtitles then 
+                                     if options.autoLoadSubtitles then
                                         catch(find_subtitles)
                                      end
                                  end)
