@@ -29,19 +29,33 @@ function osdb.logout()
     osdb.check(ok, res)
 end
 
-function osdb.query(nsubtitles, hash, size, language)
+function osdb.query(nsubtitles, language, hash, size, query)
     assert(osdb.token)
-    assert(hash and size and language)
-    local searchQuery = {
+    assert(language)
+
+    local searchQuery = {}
+    if hash and size then
+        table.insert(searchQuery,
         {
-            moviehash = hash, 
-            moviebytesize = size, 
+            moviehash = hash,
+            moviebytesize = size,
             sublanguageid = language
-        }
-    }
+        })
+    end
+
+    if query then
+        table.insert(searchQuery,
+        {
+            query = query,
+            sublanguageid = language
+        })
+    end
+
+    assert(#searchQuery > 0)
+
     local limit = {limit = nsubtitles}
 
-    local ok, res = rpc.call(osdb.API, 'SearchSubtitles', 
+    local ok, res = rpc.call(osdb.API, 'SearchSubtitles',
                              osdb.token, searchQuery, limit)
     osdb.check(ok, res)
     if res.data == false then
@@ -53,7 +67,7 @@ end
 function osdb.report(subdata)
     assert(osdb.token)
     assert(subdata)
-    local ok, res = rpc.call(osdb.API, 'ReportWrongMovieHash', 
+    local ok, res = rpc.call(osdb.API, 'ReportWrongMovieHash',
                              osdb.token, subdata.IDSubMovieFile)
     osdb.check(ok, res)
 end
