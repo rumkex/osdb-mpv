@@ -20,6 +20,7 @@ local options = {
     numSubtitles = 10,
     language = 'eng',
     autoFlagSubtitles = false,
+    allowFilenameSearch = true,
     user = '',
     password = ''
 }
@@ -106,16 +107,24 @@ function find_subtitles()
         -- Refresh the subtitle list
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
+
+        local basename = nil
+        if options.allowFilenameSearch then
+            _, basename = utils.split_path(srcfile)
+        end
+
         local ok, mhash, fsize = pcall(movieHash, srcfile)
         if not ok then
             msg.warn("Movie hash couldn't be computed")
-            return
+            mhash = nil
+            fsize = nil
         end
         mp.osd_message("Searching for subtitles...")
         rpc.login(options.user, options.password)
         subtitles = rpc.query(options.numSubtitles,
+                              options.language,
                               mhash, fsize,
-                              options.language)
+                              basename)
         current_subtitle = 1
         rpc.logout()
     else
@@ -146,7 +155,7 @@ function find_subtitles()
 end
 
 function flag_subtitle()
-    if #subtitles > 0 then
+    if #subtitles > 0 and subtitles[current_subtitle].IDSubMovieFile > '0' then
         rpc.login(options.user, options.password)
         mp.osd_message("Subtitle suggestion reported as incorrect")
         rpc.report(subtitles[current_subtitle])

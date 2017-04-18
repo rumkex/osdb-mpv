@@ -47,6 +47,11 @@ Subtitle languages to search for. Default is 'eng'. Can be multiple values, comm
 
 Flag subtitles automatically when switching to the next subtitle suggestion. Default is 'no'.
 
+    allowFilenameSearch=[yes|no]
+
+Use the file name in addition to the file hash when querying the subtitles database.
+This will include more results but those might not actually match the movie (depends on how the file name is formatted).
+
 You can either add those to MPV configuration file, for example:
 
     script-opts=osdb-autoLoadSubtitles=yes,osdb-numSubtitles=100
