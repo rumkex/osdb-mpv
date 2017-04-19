@@ -153,13 +153,18 @@ function find_subtitles()
         return
     end
     -- Load current subtitle
-    mp.osd_message(string.format("Downloading subtitle %d/%d…", current_subtitle, #subtitles))
-    local filename = download_file(subtitles[current_subtitle].SubDownloadLink,
-                                   subtitles[current_subtitle].SubFileName)
+    local sub = subtitles[current_subtitle]
+    mp.osd_message(string.format(
+        "[%d/%d] Downloading subtitle…\n%s",
+        current_subtitle, #subtitles, sub.SubFileName
+    ))
+    local filename = download_file(sub.SubDownloadLink,
+                                   sub.SubFileName)
     mp.commandv('sub_add', filename)
-    mp.osd_message(string.format("Using subtitle %d/%d (matched by %s)", 
-                                 current_subtitle, #subtitles,
-                                 subtitles[current_subtitle].MatchedBy))
+    mp.osd_message(string.format(
+        "[%d/%d] Using subtitle (matched by %s)\n%s",
+        current_subtitle, #subtitles, sub.MatchedBy, sub.SubFileName
+    ))
     -- Remember which track it is
     subtitles[current_subtitle]._sid = mp.get_property('sid')
 end
