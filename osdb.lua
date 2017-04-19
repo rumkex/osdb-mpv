@@ -2,8 +2,7 @@ if mp == nil then
     print('Must be run inside MPV')
 end
 
-local rpc = require 'osdb-rpc'
-
+local rpc = require 'xmlrpc.http'
 local os = require 'os'
 local io = require 'io'
 local http = require 'socket.http'
@@ -29,7 +28,56 @@ read_options(options, 'osdb')
 
 local TMP = '/tmp/%s'
 
--- Movie hash function for OSDB, courtesy of
+-- This is for performing RPC calls to OpenSubtitles
+local osdb = {}
+
+osdb.API = 'http://api.opensubtitles.org/xml-rpc'
+osdb.USERAGENT = 'osdb-mpv v1'
+
+function osdb.check(ok, res)
+    if not ok then
+        error('Request failed.')
+    end
+    if not res.status == '200 OK' then
+        error('Request failed. ', res.status)
+    end
+end
+
+function osdb.login(user, password)
+    local ok, res = rpc.call(osdb.API, 'LogIn', user,
+                             password, 'en', osdb.USERAGENT)
+    osdb.check(ok, res)
+    osdb.token = res.token
+end
+
+function osdb.logout()
+    assert(osdb.token)
+    local ok, res = rpc.call(osdb.API, 'LogOut', osdb.token)
+    osdb.check(ok, res)
+end
+
+function osdb.query(search_query, nsubtitles)
+    assert(osdb.token)
+    local limit = {limit = nsubtitles}
+
+    local ok, res = rpc.call(osdb.API, 'SearchSubtitles',
+                             osdb.token, search_query, limit)
+    osdb.check(ok, res)
+    if res.data == false then
+        error('No subtitles found in OSDb')
+    end
+    return res.data
+end
+
+function osdb.report(subdata)
+    assert(osdb.token)
+    assert(subdata)
+    local ok, res = rpc.call(osdb.API, 'ReportWrongMovieHash',
+                             osdb.token, subdata.IDSubMovieFile)
+    osdb.check(ok, res)
+end
+
+-- Movie hash function for OSDB, courtesy of 
 -- http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
 function movieHash(fileName)
         local fil = io.open(fileName, "rb")
@@ -131,10 +179,10 @@ function find_subtitles()
                 sublanguageid = options.language
             })
         end
-        rpc.login(options.user, options.password)
-        subtitles = rpc.query(searchQuery, options.numSubtitles)
+        osdb.login(options.user, options.password)
+        subtitles = osdb.query(searchQuery, options.numSubtitles)
         current_subtitle = 1
-        rpc.logout()
+        osdb.logout()
     else
         -- Move to the next subtitle
         if subtitles[current_subtitle]._sid ~= nil then
@@ -171,10 +219,10 @@ end
 
 function flag_subtitle()
     if #subtitles > 0 and subtitles[current_subtitle].MatchedBy == 'moviehash' then
-        rpc.login(options.user, options.password)
+        osdb.login(options.user, options.password)
         mp.osd_message("Subtitle suggestion reported as incorrect")
-        rpc.report(subtitles[current_subtitle])
-        rpc.logout()
+        osdb.report(subtitles[current_subtitle])
+        osdb.logout()
     end
 end
 
