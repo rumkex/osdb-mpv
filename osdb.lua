@@ -15,6 +15,7 @@ local utils = require 'mp.utils'
 require 'mp.options'
 -- Read options from {mpv_config_dir}/lua-settings/osdb.conf
 local options = {
+    tempFolder = '/tmp',
     autoLoadSubtitles = false,
     numSubtitles = 10,
     language = 'eng',
@@ -26,7 +27,6 @@ local options = {
 }
 read_options(options, 'osdb')
 
-local TMP = '/tmp/%s'
 
 -- This is for performing RPC calls to OpenSubtitles
 local osdb = {}
@@ -140,7 +140,7 @@ function download_file(link, filename)
         end
     end
 
-    local subfile = string.format(TMP, filename)
+    local subfile = string.format(options.tempFolder..'/%s', filename)
     http.request {
         url = link,
         sink = ltn12.sink.chain(
