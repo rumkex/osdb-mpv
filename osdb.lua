@@ -20,6 +20,8 @@ local options = {
     numSubtitles = 10,
     language = 'eng',
     autoFlagSubtitles = false,
+    useHashSearch = true,
+    useFilenameSearch = true,
     user = '',
     password = ''
 }
@@ -106,18 +108,33 @@ function find_subtitles()
         -- Refresh the subtitle list
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
-        local ok, mhash, fsize = pcall(movieHash, srcfile)
-        if not ok then
-            msg.warn("Movie hash couldn't be computed")
-            return
-        end
         mp.osd_message("Searching for subtitles...")
+        local searchQuery = {}
+        if options.useHashSearch then
+            local ok, mhash, fsize = pcall(movieHash, srcfile)
+            if ok then
+                table.insert(searchQuery,
+                {
+                    moviehash = mhash,
+                    moviebytesize = fsize,
+                    sublanguageid = options.language
+                })
+            else
+                msg.warn("Movie hash couldn't be computed")
+            end
+        end
+        if options.useFilenameSearch then
+            local _, basename = utils.split_path(srcfile)
+            table.insert(searchQuery,
+            {
+                query = basename,
+                sublanguageid = options.language
+            })
+        end
         rpc.login(options.user, options.password)
-        subtitles = rpc.query(options.numSubtitles,
-                              mhash, fsize,
-                              options.language)
-        current_subtitle = 1
+        subtitles = rpc.query(searchQuery, options.numSubtitles)
         rpc.logout()
+        current_subtitle = 1
     else
         -- Move to the next subtitle
         if subtitles[current_subtitle]._sid ~= nil then
@@ -140,13 +157,15 @@ function find_subtitles()
     local filename = download_file(subtitles[current_subtitle].SubDownloadLink,
                                    subtitles[current_subtitle].SubFileName)
     mp.commandv('sub_add', filename)
-    mp.osd_message(string.format("Using subtitle %d/%d", current_subtitle, #subtitles))
+    mp.osd_message(string.format("Using subtitle %d/%d (matched by %s)", 
+                                 current_subtitle, #subtitles,
+                                 subtitles[current_subtitle].MatchedBy))
     -- Remember which track it is
     subtitles[current_subtitle]._sid = mp.get_property('sid')
 end
 
 function flag_subtitle()
-    if #subtitles > 0 then
+    if #subtitles > 0 and subtitles[current_subtitle].MatchedBy == 'moviehash' then
         rpc.login(options.user, options.password)
         mp.osd_message("Subtitle suggestion reported as incorrect")
         rpc.report(subtitles[current_subtitle])
