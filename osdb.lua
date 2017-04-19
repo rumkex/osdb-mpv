@@ -133,8 +133,8 @@ function find_subtitles()
         end
         rpc.login(options.user, options.password)
         subtitles = rpc.query(searchQuery, options.numSubtitles)
-        rpc.logout()
         current_subtitle = 1
+        rpc.logout()
     else
         -- Move to the next subtitle
         if subtitles[current_subtitle]._sid ~= nil then
