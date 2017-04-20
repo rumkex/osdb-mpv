@@ -124,12 +124,8 @@ function movieHash(fileName)
         return string.format("%08x%08x", hi,lo), size
 end
 
--- Subtitle list cache
-local subtitles = {}
-local current_subtitle = 0
-
-function download_file(link, filename)
-    assert(link and filename)
+function download(subtitle)
+    assert(subtitle.SubDownloadLink and subtitle.SubFileName)
 
     local inflate = zlib.inflate()
     local decompress = function(chunk)
@@ -140,9 +136,9 @@ function download_file(link, filename)
         end
     end
 
-    local subfile = string.format(options.tempFolder..'/%s', filename)
+    local subfile = string.format(options.tempFolder..'/%s', subtitle.SubFileName)
     http.request {
-        url = link,
+        url = subtitle.SubDownloadLink,
         sink = ltn12.sink.chain(
             decompress,
             ltn12.sink.file(io.open(subfile, 'wb'))
@@ -151,9 +147,26 @@ function download_file(link, filename)
     return subfile
 end
 
-function find_subtitles()
-    if #subtitles == 0 then
-        -- Refresh the subtitle list
+-- Subtitle list cache
+local subtitles = {}
+
+function subtitles.set(self, list)
+    self.count = #list
+    self.list = list
+    self.current = nil
+    self.idx = nil
+
+    for _, sub in pairs(list) do
+	sub.download = download
+    end
+end
+
+function subtitles.next(self)
+    self.idx = next(self.list, self.idx)
+    self.current = self.list[self.idx]
+end
+
+function fetch_list()
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
         mp.osd_message("Searching for subtitles...")
@@ -180,48 +193,57 @@ function find_subtitles()
             })
         end
         osdb.login(options.user, options.password)
-        subtitles = osdb.query(searchQuery, options.numSubtitles)
-        current_subtitle = 1
-        osdb.logout()
-    else
-        -- Move to the next subtitle
-        if subtitles[current_subtitle]._sid ~= nil then
-            mp.commandv('sub_remove', subtitles[current_subtitle]._sid)
-            if options.autoFlagSubtitles then
-                flag_subtitle()
-            end
+        subtitles:set(osdb.query(searchQuery, options.numSubtitles))
+
+        if subtitles.count == 0 then
+            mp.osd_message("No subtitles found")
         end
-        current_subtitle = current_subtitle + 1
-        if current_subtitle > #subtitles then
-            current_subtitle = 1
+        osdb.logout()
+end
+
+function rotate_subtitles()
+    if subtitles.count == 0 then
+        -- Refresh the subtitle list
+        fetch_list()
+    end
+
+    -- Remove previous subtitle track, if possible
+    if subtitles.current ~= nil and subtitles.current._sid ~= nil then
+        mp.commandv('sub_remove', subtitles.current._sid)
+        if options.autoFlagSubtitles then
+            flag_subtitle()
         end
     end
-    if #subtitles == 0 then
-        mp.osd_message("No subtitles found")
+
+    -- Move to the next subtitle
+    subtitles:next()
+
+    -- If at the end of the list (or no subtitles found), don't do anything
+    if subtitles.current == nil then
         return
     end
+
     -- Load current subtitle
-    local sub = subtitles[current_subtitle]
     mp.osd_message(string.format(
         "[%d/%d] Downloading subtitle…\n%s",
-        current_subtitle, #subtitles, sub.SubFileName
+        subtitles.idx, subtitles.count, subtitles.current.SubFileName
     ))
-    local filename = download_file(sub.SubDownloadLink,
-                                   sub.SubFileName)
+    local filename = subtitles.current:download()
     mp.commandv('sub_add', filename)
     mp.osd_message(string.format(
         "[%d/%d] Using subtitle (matched by %s)\n%s",
-        current_subtitle, #subtitles, sub.MatchedBy, sub.SubFileName
+        subtitles.idx, subtitles.count, 
+        subtitles.current.MatchedBy, subtitles.current.SubFileName
     ))
     -- Remember which track it is
-    subtitles[current_subtitle]._sid = mp.get_property('sid')
+    subtitles.current._sid = mp.get_property('sid')
 end
 
 function flag_subtitle()
-    if #subtitles > 0 and subtitles[current_subtitle].MatchedBy == 'moviehash' then
+    if subtitles.current ~= nil and subtitles.current.MatchedBy == 'moviehash' then
         osdb.login(options.user, options.password)
         mp.osd_message("Subtitle suggestion reported as incorrect")
-        osdb.report(subtitles[current_subtitle])
+        osdb.report(subtitles.current)
         osdb.logout()
     end
 end
@@ -239,12 +261,12 @@ function catch(callback, ...)
 end
 
 mp.add_key_binding('Ctrl+r', 'osdb_report', function() catch(flag_subtitle) end)
-mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', function() catch(find_subtitles) end)
+mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', function() catch(rotate_subtitles) end)
 mp.register_event('file-loaded', function (event)
                                      -- Reset the cache
-                                     subtitles = {}
-                                     if options.autoLoadSubtitles then
-                                        catch(find_subtitles)
+                                     subtitles:set({})
+                                     if options.autoLoadSubtitles then 
+                                        catch(rotate_subtitles)
                                      end
                                  end)
 
