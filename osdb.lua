@@ -22,6 +22,8 @@ local options = {
     autoFlagSubtitles = false,
     useHashSearch = true,
     useFilenameSearch = true,
+    osdDelayLong = 30,
+    osdDelayShort = -1,
     user = '',
     password = ''
 }
@@ -77,7 +79,7 @@ function osdb.report(subdata)
     osdb.check(ok, res)
 end
 
--- Movie hash function for OSDB, courtesy of 
+-- Movie hash function for OSDB, courtesy of
 -- http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes
 function movieHash(fileName)
         local fil = io.open(fileName, "rb")
@@ -169,7 +171,7 @@ end
 function fetch_list()
         local srcfile = mp.get_property('path')
         assert(srcfile ~= nil)
-        mp.osd_message("Searching for subtitles...")
+        mp.osd_message("Searching for subtitles...", options.osdDelayLong)
         local searchQuery = {}
         if options.useHashSearch then
             local ok, mhash, fsize = pcall(movieHash, srcfile)
@@ -196,7 +198,7 @@ function fetch_list()
         subtitles:set(osdb.query(searchQuery, options.numSubtitles))
 
         if subtitles.count == 0 then
-            mp.osd_message("No subtitles found")
+            mp.osd_message("No subtitles found", options.osdDelayShort)
         end
         osdb.logout()
 end
@@ -227,14 +229,14 @@ function rotate_subtitles()
     mp.osd_message(string.format(
         "[%d/%d] Downloading subtitle…\n%s",
         subtitles.idx, subtitles.count, subtitles.current.SubFileName
-    ))
+    ), options.osdDelayLong)
     local filename = subtitles.current:download()
     mp.commandv('sub_add', filename)
     mp.osd_message(string.format(
         "[%d/%d] Using subtitle (matched by %s)\n%s",
-        subtitles.idx, subtitles.count, 
+        subtitles.idx, subtitles.count,
         subtitles.current.MatchedBy, subtitles.current.SubFileName
-    ))
+    ), options.osdDelayShort)
     -- Remember which track it is
     subtitles.current._sid = mp.get_property('sid')
 end
@@ -242,7 +244,8 @@ end
 function flag_subtitle()
     if subtitles.current ~= nil and subtitles.current.MatchedBy == 'moviehash' then
         osdb.login(options.user, options.password)
-        mp.osd_message("Subtitle suggestion reported as incorrect")
+        mp.osd_message("Subtitle suggestion reported as incorrect",
+                       options.osdDelayShort)
         osdb.report(subtitles.current)
         osdb.logout()
     end
@@ -254,7 +257,7 @@ function catch(callback, ...)
         function(err)
             msg.warn(debug.traceback())
             msg.fatal(err)
-            mp.osd_message("Error: " .. err)
+            mp.osd_message("Error: " .. err, options.osdDelayShort)
         end,
         ...
     )
@@ -265,7 +268,7 @@ mp.add_key_binding('Ctrl+f', 'osdb_find_subtitles', function() catch(rotate_subt
 mp.register_event('file-loaded', function (event)
                                      -- Reset the cache
                                      subtitles:set({})
-                                     if options.autoLoadSubtitles then 
+                                     if options.autoLoadSubtitles then
                                         catch(rotate_subtitles)
                                      end
                                  end)
