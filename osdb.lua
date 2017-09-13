@@ -36,35 +36,39 @@ local osdb = {}
 osdb.API = 'http://api.opensubtitles.org/xml-rpc'
 osdb.USERAGENT = 'osdb-mpv v1'
 
-function osdb.check(ok, res)
+function osdb.rpc(...)
+    local args = {...}
+
+    for i, item in pairs(args) do
+        args[i] = osdb.xml_escape(item)
+    end
+
+    local ok, res = rpc.call(osdb.API, table.unpack(args))
+
     if not ok then
         error('Request failed.')
+    elseif res.status ~= '200 OK' then
+        error('Request failed: ' .. res.status)
     end
-    if not res.status == '200 OK' then
-        error('Request failed. ', res.status)
-    end
+
+    return res
 end
 
 function osdb.login(user, password)
-    local ok, res = rpc.call(osdb.API, 'LogIn', user,
-                             password, 'en', osdb.USERAGENT)
-    osdb.check(ok, res)
+    local res = osdb.rpc('LogIn', user, password, 'en', osdb.USERAGENT)
     osdb.token = res.token
 end
 
 function osdb.logout()
     assert(osdb.token)
-    local ok, res = rpc.call(osdb.API, 'LogOut', osdb.token)
-    osdb.check(ok, res)
+    osdb.rpc('LogOut', osdb.token)
 end
 
 function osdb.query(search_query, nsubtitles)
     assert(osdb.token)
     local limit = {limit = nsubtitles}
 
-    local ok, res = rpc.call(osdb.API, 'SearchSubtitles',
-                             osdb.token, search_query, limit)
-    osdb.check(ok, res)
+    local res = osdb.rpc('SearchSubtitles', osdb.token, search_query, limit)
     if res.data == false then
         error('No subtitles found in OSDb')
     end
@@ -74,9 +78,21 @@ end
 function osdb.report(subdata)
     assert(osdb.token)
     assert(subdata)
-    local ok, res = rpc.call(osdb.API, 'ReportWrongMovieHash',
-                             osdb.token, subdata.IDSubMovieFile)
-    osdb.check(ok, res)
+    osdb.rpc('ReportWrongMovieHash', osdb.token, subdata.IDSubMovieFile)
+end
+
+function osdb.xml_escape(val)
+    if type(val) == 'string' then
+        return val:gsub('%&', '&amp;'):gsub('%<', '&lt;'):gsub('%>', '&gt;')
+    elseif type(val) == 'table' then
+        local conv = {}
+        for k, v in pairs(val) do
+            conv[k] = osdb.xml_escape(v)
+        end
+        return conv
+    else
+        return val
+    end
 end
 
 -- Movie hash function for OSDB, courtesy of
