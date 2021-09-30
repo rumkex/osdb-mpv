@@ -20,7 +20,7 @@ Alternatively, one can use distribution Lua packages (confirmed working on Ubunt
 
 # Installation
 
-Just drop *osdb.lua* and *osdb-rpc.lua* into **~/.mpv/scripts** (or **~/.config/mpv/scripts**).
+Just drop *osdb.lua* into **~/.mpv/scripts** (or **~/.config/mpv/scripts**).
 
 # Configuration
 
